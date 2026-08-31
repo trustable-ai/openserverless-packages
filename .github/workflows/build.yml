@@ -61,23 +61,15 @@ jobs:
         run: sudo -E ./package.sh
         working-directory: packages
 
-      - name: Identify package
-        id: pkg
+      - name: publish
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ZONE: ${{ secrets.S3_ZONE }}
+          S3_KEY: ${{ secrets.S3_KEY }}
+          S3_SECRETS: ${{ secrets.S3_SECRETS }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # package.sh wrote dist/version.txt next to the .deb
-          version="$(cat dist/version.txt)"
-          arch="$(dpkg --print-architecture)"
-          deb="dist/openserverless_${version}_${arch}.deb"
-          test -f "$deb" || { echo "missing $deb"; ls -l dist; exit 1; }
-          sudo chown "$(id -u):$(id -g)" "$deb"
-          echo "version=$version" >>"$GITHUB_OUTPUT"
-          echo "deb=$deb" >>"$GITHUB_OUTPUT"
-          echo "### $(basename "$deb")" >>"$GITHUB_STEP_SUMMARY"
-          dpkg-deb --info "$deb" >>"$GITHUB_STEP_SUMMARY"
-
-      - name: Publish to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.pkg.outputs.version }}
-          name: openserverless ${{ steps.pkg.outputs.version }}
-          files: ${{ steps.pkg.outputs.deb }}
+          # package.sh runs under sudo, so the artifacts are root-owned.
+          sudo chown -R "$(id -u):$(id -g)" ../dist
+          ./publish.sh
+        working-directory: packages
