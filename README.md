@@ -57,7 +57,7 @@ to `../dist/version.txt` by `package.sh` and read back by `publish.sh`.
 ## Publish
 
 ```bash
-S3_ENDPOINT=... S3_ZONE=... S3_KEY=... S3_SECRETS=... ./publish.sh
+S3_ENDPOINT=... S3_ZONE=... S3_KEY=... S3_SECRET=... ./publish.sh
 ```
 
 `publish.sh` uploads `../dist/openserverless_<version>_<arch>.deb` to the
@@ -72,7 +72,7 @@ race. Without `GH_TOKEN`/`GITHUB_TOKEN` the upload still runs and the release
 step is skipped.
 
 The workflow expects four repository secrets: `S3_ENDPOINT`, `S3_ZONE`, `S3_KEY`
-and `S3_SECRETS`.
+and `S3_SECRET`.
 
 ## CI
 

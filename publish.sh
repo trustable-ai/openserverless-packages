@@ -10,7 +10,7 @@ echo "=== PUBLISH ==="
 # S3 credentials come from the environment (CI secrets); refuse to run without
 # a complete set rather than failing halfway through the upload.
 missing=()
-for v in S3_ENDPOINT S3_ZONE S3_KEY S3_SECRETS; do
+for v in S3_ENDPOINT S3_ZONE S3_KEY S3_SECRET; do
     if [ -z "${!v:-}" ]; then missing+=("$v"); fi
 done
 if [ "${#missing[@]}" -ne 0 ]; then
@@ -42,7 +42,7 @@ fi
 echo "Publishing ${DEBNAME} (version ${VERSION}, arch ${ARCH})"
 
 export AWS_ACCESS_KEY_ID="${S3_KEY}"
-export AWS_SECRET_ACCESS_KEY="${S3_SECRETS}"
+export AWS_SECRET_ACCESS_KEY="${S3_SECRET}"
 export AWS_DEFAULT_REGION="${S3_ZONE}"
 
 aws --endpoint-url "${S3_ENDPOINT}" \
