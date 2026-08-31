@@ -59,6 +59,52 @@ cleanup() { sudo rm -rf "${PKGROOT}"; }
 trap cleanup EXIT
 
 
+# Home of the "ops" user (uid/gid 767), shipped inside the package so the
+# platform can be driven by a dedicated unprivileged account. Unlike the rest of
+# the payload this tree does not pre-exist on the build host, so it is staged at
+# its real install location and then tarred from there like everything else.
+OPSHOME="/var/lib/ops"
+for f in /usr/bin/ops "${HOME}/.ops" /etc/rancher/k3s/k3s.yaml; do
+    if [ ! -e "$f" ]; then
+        echo "Missing required file: $f" >&2
+        exit 1
+    fi
+done
+sudo rm -rf "${OPSHOME}"
+sudo install -d -m 0755 "${OPSHOME}" "${OPSHOME}/.local" "${OPSHOME}/.local/bin"
+
+# The ops CLI. setup.sh puts it at /usr/bin/ops on the build host, which is the
+# source here; the package ships it ONLY under the ops home, not in /usr/bin.
+sudo cp -a /usr/bin/ops "${OPSHOME}/.local/bin/ops"
+sudo chmod 0755 "${OPSHOME}/.local/bin/ops"
+
+# The build user's ops configuration (downloaded olaris tree, config.json...).
+sudo cp -a "${HOME}/.ops" "${OPSHOME}/.ops"
+
+# The cluster credentials, where ops expects to find them.
+sudo install -d -m 0755 "${OPSHOME}/.ops/tmp"
+sudo cp /etc/rancher/k3s/k3s.yaml "${OPSHOME}/.ops/tmp/kubeconfig"
+sudo chmod 0600 "${OPSHOME}/.ops/tmp/kubeconfig"
+
+# The environment lives in .bashrc so it applies to non-login shells too
+# (sudo -u ops, ssh "cmd", ...); .profile just sources it, so login shells get
+# exactly the same settings from a single source of truth.
+sudo tee "${OPSHOME}/.bashrc" >/dev/null <<BASHRC
+export OPS_REPO=${OPS_REPO}
+export OPS_BRANCH=${OPS_BRANCH}
+export PATH=\$PATH:${OPSHOME}/.local/bin
+BASHRC
+sudo chmod 0644 "${OPSHOME}/.bashrc"
+
+sudo tee "${OPSHOME}/.profile" >/dev/null <<PROFILE
+[ -f ${OPSHOME}/.bashrc ] && . ${OPSHOME}/.bashrc
+PROFILE
+sudo chmod 0644 "${OPSHOME}/.profile"
+
+# Everything under /var/lib/ops belongs to the ops user, created by the postinst
+# with the same numeric uid/gid. --numeric-owner records 767:767 in data.tar.
+sudo chown -R 767:767 "${OPSHOME}"
+
 # Files bundled verbatim from their real locations (no copy). The two helper
 # scripts above are included here so the whole payload tars from a single root.
 FILES=(
@@ -69,7 +115,6 @@ FILES=(
     /etc/rancher/k3s/k3s.yaml
     /etc/systemd/system/k3s.service
     /etc/systemd/system/k3s.service.env
-    /usr/bin/ops
 )
 
 for f in "${FILES[@]}"; do
@@ -111,9 +156,10 @@ echo "Building data.tar (tarring from source, no copy)..."
 MEMBERS_FILE="${PKGROOT}/members.lst"
 {
     # Each individual file plus all of its ancestor directories. The k3s state
-    # dir is listed too so its ancestors (./var, ./var/lib, ...) are emitted as
-    # directory entries; its contents are appended recursively in pass 2.
-    for f in "${FILES[@]}" "${K3S_SUBTREE}"; do
+    # dir and the ops home are listed too so their ancestors (./var, ./var/lib,
+    # ...) are emitted as directory entries; their contents are appended
+    # recursively in passes 2 and 3.
+    for f in "${FILES[@]}" "${K3S_SUBTREE}" "${OPSHOME}"; do
         d="$f"
         while [ "$d" != "/" ]; do
             echo ".${d}"
@@ -142,6 +188,13 @@ sudo tar --append --numeric-owner \
     --exclude='./var/lib/rancher/k3s/server/tls' \
     ".${K3S_SUBTREE}"
 
+# Pass 3: append the staged ops home recursively (owned 767:767 on disk, so
+# --numeric-owner carries that ownership straight into the package).
+sudo tar --append --numeric-owner \
+    -f "${DATA_TAR_RAW}" \
+    -C / \
+    ".${OPSHOME}"
+
 # Compress to data.tar.zst.
 sudo zstd -q -f --rm "${DATA_TAR_RAW}" -o "${DATA_TAR}"
 
@@ -150,6 +203,7 @@ INSTALLED_SIZE=$(
     {
         for f in "${FILES[@]}"; do sudo du -sk "$f"; done
         sudo du -sk --exclude='*/server/tls' "${K3S_SUBTREE}"
+        sudo du -sk "${OPSHOME}"
     } | awk '{s+=$1} END{print s}'
 )
 
@@ -237,6 +291,12 @@ sudo tee "${PKGROOT}/DEBIAN/postinst" >/dev/null <<'EOF'
 #!/bin/bash
 set -e
 
+groupadd --gid 767 ops 2>/dev/null || true
+useradd --uid 767 --gid 767 --no-create-home --home-dir /var/lib/ops --shell /bin/bash ops 2>/dev/null || true
+# The whole /var/lib/ops tree ships in the package already owned 767:767; this only
+# re-asserts it in case the uid/gid had to be allocated differently.
+chown -R ops:ops /var/lib/ops 2>/dev/null || true
+
 groupadd --gid 769 trustable 2>/dev/null || true
 useradd --uid 769 --gid 769 --create-home --home-dir /home/trustable --shell /bin/bash trustable 2>/dev/null || true
 install -d -o trustable -g trustable -m 0755 /home/trustable/workspace
@@ -305,6 +365,14 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     rm -f /etc/systemd/system/k3s.service.d/blockports.conf
     rmdir /etc/systemd/system/k3s.service.d 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
+
+    if id ops >/dev/null 2>&1; then
+        userdel ops 2>/dev/null || true
+    fi
+    if getent group ops >/dev/null 2>&1; then
+        groupdel ops 2>/dev/null || true
+    fi
+    rm -rf /var/lib/ops
 
     if id trustable >/dev/null 2>&1; then
         userdel trustable 2>/dev/null || true

@@ -25,6 +25,7 @@ system packages, create a `trustable` user and take over k3s on the host.
 | [prepare.sh](prepare.sh) | Installs k3s, deploys OpenServerless onto it, trims and stops it |
 | [package.sh](package.sh) | Assembles the `.deb` from the prepared machine state |
 | [publish.sh](publish.sh) | Uploads the `.deb` to S3 and records it in the GitHub release |
+| [index.sh](index.sh) | Regenerates the bucket's `index.html` and `index.json` |
 | [.github/workflows/build.yml](.github/workflows/build.yml) | Runs all four, for amd64 and arm64 |
 
 Build output goes to `../dist` — a sibling of this directory, not inside it.
@@ -73,6 +74,43 @@ step is skipped.
 
 The workflow expects four repository secrets: `S3_ENDPOINT`, `S3_ZONE`, `S3_KEY`
 and `S3_SECRET`.
+
+## Download index
+
+`publish.sh` calls [index.sh](index.sh) after every upload, and it can also be
+run on its own with the same four `S3_*` variables:
+
+```bash
+S3_ENDPOINT=... S3_ZONE=... S3_KEY=... S3_SECRET=... ./index.sh
+```
+
+It lists the `.deb` files currently in the bucket and writes two files to the
+bucket root:
+
+- `/index.html` — a human-readable page grouping packages by version, with each
+  version's architectures and publication date, newest version first.
+- `/index.json` — the same data for scripts, keyed by architecture:
+
+```json
+{
+  "amd64": {
+    "0.1.0+f1553b": "https://openserverless.nuvolaris.download/openserverless_0.1.0+f1553b_amd64.deb",
+    "latest": "https://openserverless.nuvolaris.download/openserverless_0.1.0+f1553b_amd64.deb"
+  }
+}
+```
+
+`latest` points at the most recently published package for that architecture, so
+an installer can fetch the current build without knowing a version number:
+
+```bash
+arch="$(dpkg --print-architecture)"
+url="$(curl -sS https://openserverless.nuvolaris.download/index.json | jq -r ".\"$arch\".latest")"
+```
+
+The page is generated purely from what the bucket holds, so it is always
+consistent with reality: re-running it picks up packages published by other
+builds and drops any that were deleted.
 
 ## CI
 
