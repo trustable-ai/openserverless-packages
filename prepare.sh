@@ -1,7 +1,11 @@
 #!/bin/bash
-echo "=== PREPARE ==="
+set -euo pipefail
 cd "$(dirname $0)"
-ops -info
+source env
+
+echo "=== PREPARE ==="
+
+echo "=== install k3s ==="
 
 if which k3s-killall.sh
 then sudo k3s-killall.sh &&  sudo k3s-uninstall.sh
@@ -17,6 +21,8 @@ mkdir -p ~/.ops/tmp
 sudo cat /etc/rancher/k3s/k3s.yaml >~/.ops/tmp/kubeconfig
 ops debug kube nodes
 
+echo "=== install openserverless ==="
+
 ops config slim
 ops config apihost miniops.me --protocol=http
 
@@ -24,6 +30,14 @@ ops setup kubernetes create
 ops setup nuvolaris streamer deploy
 ops setup nuvolaris system-api deploy
 
+
+echo "=== test ==="
+
+sudo k3s kubectl -n nuvolaris get ingress
+sudo k3s kubectl -n nuvolaris get sts
+sudo k3s kubectl -n nuvolaris get po
+
+echo "=== trim down openserverless ==="
 
 # cleanup
 sudo du -sh /var/lib/rancher
@@ -37,8 +51,12 @@ sudo k3s crictl rmi --prune || true
 sudo k3s ctr -n k8s.io content prune references || true
 sudo du -sh /var/lib/rancher
 
+echo "=== stopping openserverless ==="
+
 sudo systemctl stop k3s
 /usr/local/bin/k3s-killall.sh
 
 sync
 sleep 2
+
+echo "=== ready to package ==="

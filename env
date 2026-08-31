@@ -1,0 +1,3 @@
+export OPS_DEB_VERSION=v0.1.0
+export OPS_BRANCH=0.1.0
+export OPS_REPO=https://github.com/trustable-ai/olaris

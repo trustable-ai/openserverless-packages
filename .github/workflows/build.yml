@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: Architectures to build
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - amd
+          - arm
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      arch: ${{ steps.set.outputs.arch }}
+    steps:
+      - id: set
+        run: |
+          case "${{ inputs.arch }}" in
+            amd) echo 'arch=["amd"]' >>"$GITHUB_OUTPUT" ;;
+            arm) echo 'arch=["arm"]' >>"$GITHUB_OUTPUT" ;;
+            *)   echo 'arch=["amd","arm"]' >>"$GITHUB_OUTPUT" ;;
+          esac
+
+  build:
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJson(needs.matrix.outputs.arch) }}
+    runs-on: ${{ matrix.arch == 'arm' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show environment
+        run: |
+          uname -m
+          dpkg --print-architecture
+
+      - name: setup
+        run: ./setup.sh
+
+      - name: prepare
+        run: ./prepare.sh

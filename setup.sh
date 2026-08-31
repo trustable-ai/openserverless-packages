@@ -1,8 +1,11 @@
 #!/bin/bash
-cd "$(dirname $0)"
-
 set -euo pipefail
-sudo apt-get update && sudo apt-get install -y iptablesm zstd binutils
+cd "$(dirname $0)"
+source env
+
+echo "=== prepare user trustable ==="
+
+sudo apt-get update && sudo apt-get install -y iptables zstd binutils
 
 sudo userdel trustable || true
 sudo groupdel trustable || true
@@ -12,9 +15,11 @@ sudo useradd -u 769 -g trustable -m -d /home/trustable -s /bin/bash trustable ||
 sudo mkdir -p /home/trustable/workspace
 sudo chown -R trustable:trustable /home/trustable
 
-curl -sL n7s.co/get-ops | bash
+echo "=== install ops ==="
+
+curl -sL n7s.co/get-ops-tru | bash
 sudo mv ~/.local/bin/ops /usr/bin/ops
-sudo chmod root:root /usr/bin/ops
+sudo chown root:root /usr/bin/ops
 
 ops -update
 ops -info

@@ -1,11 +1,11 @@
 #!/bin/bash
 # Build the trustable .deb per ./package.md.
-echo "=== PACKAGE ==="
+set -euo pipefail
 cd "$(dirname $0)"
+source env
 ops -info
 
-set -euo pipefail
-
+echo "=== PACKAGE ==="
 # --test builds a reduced package that bundles ONLY /var/lib/rancher/k3s/server
 # (the control plane), skipping the rest of the k3s state tree (the data). Use it
 # to verify the install flow quickly without shipping the full data set.
@@ -16,7 +16,7 @@ for arg in "$@"; do
     esac
 done
 
-VERSION="$(cat version.txt)"
+VERSION="$OPS_DEB_VERSION"
 VERSION="${VERSION#v}"
 ARCH="$(dpkg --print-architecture)"
 PKGNAME="openserverless"
