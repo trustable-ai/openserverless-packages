@@ -2,7 +2,7 @@
 # Build the trustable .deb per ./package.md.
 set -euo pipefail
 cd "$(dirname $0)"
-source env
+source ./env
 ops -info
 
 echo "=== PACKAGE ==="
