@@ -3,7 +3,6 @@
 set -euo pipefail
 cd "$(dirname $0)"
 source ./env
-ops -info
 
 echo "=== PACKAGE ==="
 # --test builds a reduced package that bundles ONLY /var/lib/rancher/k3s/server
@@ -16,8 +15,17 @@ for arg in "$@"; do
     esac
 done
 
-VERSION="$OPS_DEB_VERSION"
-VERSION="${VERSION#v}"
+# Version is derived from `ops -info`: the ops branch plus the short (6 char)
+# olaris commit hash, e.g. 0.1.0+f7613c
+OPS_INFO="$(ops -info)"
+info_field() { printf '%s\n' "${OPS_INFO}" | awk -v k="$1:" '$1==k{print $2; exit}'; }
+OPS_BRANCH="$(info_field OPS_BRANCH)"
+OPS_OLARIS="$(info_field OPS_OLARIS)"
+if [ -z "${OPS_BRANCH}" ] || [ -z "${OPS_OLARIS}" ]; then
+    echo "Cannot determine version: ops -info did not report OPS_BRANCH/OPS_OLARIS" >&2
+    exit 1
+fi
+VERSION="${OPS_BRANCH}+${OPS_OLARIS:0:6}"
 ARCH="$(dpkg --print-architecture)"
 PKGNAME="openserverless"
 DISTDIR="$(cd .. && pwd)/dist"
@@ -28,6 +36,10 @@ else
 fi
 
 mkdir -p "${DISTDIR}"
+
+# Record the version so downstream steps (CI) don't have to re-derive it.
+echo "${VERSION}" > "${DISTDIR}/version.txt"
+echo "Version: ${VERSION} (written to ${DISTDIR}/version.txt)"
 
 # Ensure k3s is stopped before we read its files.
 sudo systemctl stop k3s.service 2>/dev/null || true

@@ -13,6 +13,9 @@ on:
           - amd
           - arm
 
+permissions:
+  contents: write
+
 jobs:
   matrix:
     runs-on: ubuntu-latest
@@ -35,7 +38,11 @@ jobs:
         arch: ${{ fromJson(needs.matrix.outputs.arch) }}
     runs-on: ${{ matrix.arch == 'arm' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     steps:
-      - uses: actions/checkout@v4
+      # The scripts write the .deb to ../dist relative to the repo, so check
+      # out into a subdirectory to keep that path inside the workspace.
+      - uses: actions/checkout@v5
+        with:
+          path: packages
 
       - name: Show environment
         run: |
@@ -44,6 +51,33 @@ jobs:
 
       - name: setup
         run: ./setup.sh
+        working-directory: packages
 
       - name: prepare
         run: ./prepare.sh
+        working-directory: packages
+
+      - name: package
+        run: sudo -E ./package.sh
+        working-directory: packages
+
+      - name: Identify package
+        id: pkg
+        run: |
+          # package.sh wrote dist/version.txt next to the .deb
+          version="$(cat dist/version.txt)"
+          arch="$(dpkg --print-architecture)"
+          deb="dist/openserverless_${version}_${arch}.deb"
+          test -f "$deb" || { echo "missing $deb"; ls -l dist; exit 1; }
+          sudo chown "$(id -u):$(id -g)" "$deb"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          echo "deb=$deb" >>"$GITHUB_OUTPUT"
+          echo "### $(basename "$deb")" >>"$GITHUB_STEP_SUMMARY"
+          dpkg-deb --info "$deb" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.pkg.outputs.version }}
+          name: openserverless ${{ steps.pkg.outputs.version }}
+          files: ${{ steps.pkg.outputs.deb }}
