@@ -52,9 +52,6 @@ aws --endpoint-url "${S3_ENDPOINT}" \
 DEB_URL="${PUBLIC_URL}/${DEBNAME}"
 echo "Uploaded: ${DEB_URL}"
 
-# Refresh the bucket's index.html so it lists the file we just uploaded.
-./index.sh
-
 # --- release notes -------------------------------------------------------
 # Each architecture is built by a separate job publishing to the SAME release
 # tag, so the notes must be updated additively: read what is already there,

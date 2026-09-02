@@ -73,3 +73,12 @@ jobs:
           sudo chown -R "$(id -u):$(id -g)" ../dist
           ./publish.sh
         working-directory: packages
+
+      - name: index
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_ZONE: ${{ secrets.S3_ZONE }}
+          S3_KEY: ${{ secrets.S3_KEY }}
+          S3_SECRET: ${{ secrets.S3_SECRET }}
+        run: ./index.sh
+        working-directory: packages
