@@ -2,7 +2,6 @@
 # Build the trustable .deb per ./package.md.
 set -euo pipefail
 cd "$(dirname $0)"
-source ./env
 
 echo "=== PACKAGE ==="
 # --test builds a reduced package that bundles ONLY /var/lib/rancher/k3s/server

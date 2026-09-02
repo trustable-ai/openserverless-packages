@@ -3,7 +3,6 @@
 # Safe to run on its own; publish.sh runs it after every upload.
 set -euo pipefail
 cd "$(dirname $0)"
-source ./env
 
 echo "=== INDEX ==="
 

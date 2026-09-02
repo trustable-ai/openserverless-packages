@@ -3,7 +3,6 @@
 # GitHub release notes for this version.
 set -euo pipefail
 cd "$(dirname $0)"
-source ./env
 
 echo "=== PUBLISH ==="
 

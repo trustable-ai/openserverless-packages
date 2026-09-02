@@ -1,7 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname $0)"
-source ./env
 
 echo "=== PREPARE ==="
 
@@ -27,8 +26,13 @@ ops config slim
 ops config apihost miniops.me --protocol=http
 
 ops setup kubernetes create
+
+echo "stopped half prepare to check streamer deploy and wait"
+exit
+
 ops setup nuvolaris streamer deploy
 ops setup nuvolaris system-api deploy
+ops setup nuvolaris tika deploy
 
 
 echo "=== test ==="
