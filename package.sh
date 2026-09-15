@@ -20,6 +20,7 @@ OPS_INFO="$(ops -info)"
 info_field() { printf '%s\n' "${OPS_INFO}" | awk -v k="$1:" '$1==k{print $2; exit}'; }
 OPS_BRANCH="$(info_field OPS_BRANCH)"
 OPS_TASKS="$(info_field OPS_TASKS)"
+OPS_REPO="${OPS_REPO:-$(info_field OPS_REPO)}"
 if [ -z "${OPS_BRANCH}" ] || [ -z "${OPS_TASKS}" ]; then
     echo "Cannot determine version: ops -info did not report OPS_BRANCH/OPS_TASKS" >&2
     exit 1
