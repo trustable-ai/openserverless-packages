@@ -15,16 +15,16 @@ for arg in "$@"; do
 done
 
 # Version is derived from `ops -info`: the ops branch plus the short (6 char)
-# olaris commit hash, e.g. 0.1.0+f7613c
+# tasks commit hash, e.g. 0.1.0+f7613c
 OPS_INFO="$(ops -info)"
 info_field() { printf '%s\n' "${OPS_INFO}" | awk -v k="$1:" '$1==k{print $2; exit}'; }
 OPS_BRANCH="$(info_field OPS_BRANCH)"
-OPS_OLARIS="$(info_field OPS_OLARIS)"
-if [ -z "${OPS_BRANCH}" ] || [ -z "${OPS_OLARIS}" ]; then
-    echo "Cannot determine version: ops -info did not report OPS_BRANCH/OPS_OLARIS" >&2
+OPS_TASKS="$(info_field OPS_TASKS)"
+if [ -z "${OPS_BRANCH}" ] || [ -z "${OPS_TASKS}" ]; then
+    echo "Cannot determine version: ops -info did not report OPS_BRANCH/OPS_TASKS" >&2
     exit 1
 fi
-VERSION="${OPS_BRANCH}+${OPS_OLARIS:0:6}"
+VERSION="${OPS_BRANCH}+${OPS_TASKS:0:6}"
 ARCH="$(dpkg --print-architecture)"
 PKGNAME="openserverless"
 DISTDIR="$(cd .. && pwd)/dist"
