@@ -20,7 +20,7 @@ system packages, create a `trustable` user and take over k3s on the host.
 
 | File | Role |
 | --- | --- |
-| [env](env) | Version inputs: `OPS_BRANCH` and the olaris repo, sourced by every script |
+| [env](env) | Version inputs: `OPS_BRANCH` and the tasks repo, sourced by every script |
 | [setup.sh](setup.sh) | Installs build dependencies, the `trustable` user and the `ops` CLI |
 | [prepare.sh](prepare.sh) | Installs k3s, deploys OpenServerless onto it, trims and stops it |
 | [package.sh](package.sh) | Assembles the `.deb` from the prepared machine state |
@@ -52,7 +52,7 @@ validating the install flow quickly, not for release.
 ### Versioning
 
 The version is derived from `ops -info`, as the ops branch plus the first six
-characters of the olaris commit hash — for example `0.1.0+f7613c`. It is written
+characters of the tasks commit hash — for example `0.1.0+f7613c`. It is written
 to `../dist/version.txt` by `package.sh` and read back by `publish.sh`.
 
 ## Publish
