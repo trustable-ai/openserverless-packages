@@ -30,10 +30,8 @@ ops setup kubernetes create
 echo "stopped half prepare to check streamer deploy and wait"
 exit
 
-ops setup nuvolaris streamer deploy
-ops setup nuvolaris system-api deploy
-ops setup nuvolaris tika deploy
-
+ops setup openserverless streamer deploy
+ops setup openserverless system-api deploy
 
 echo "=== test ==="
 
