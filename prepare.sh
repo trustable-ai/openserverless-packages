@@ -32,6 +32,7 @@ exit
 
 ops setup openserverless streamer deploy
 ops setup openserverless system-api deploy
+ops setup openserverless tika deploy
 
 echo "=== test ==="
 
