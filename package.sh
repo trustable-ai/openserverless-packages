@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the trustable .deb per ./package.md.
+# Build the trustant .deb per ./package.md.
 set -euo pipefail
 cd "$(dirname $0)"
 
@@ -219,7 +219,7 @@ Depends: iptables, systemd
 Installed-Size: ${INSTALLED_SIZE}
 Maintainer: Nuvolaris <info@nuvolaris.io>
 Description: Trustable k3s-based platform package
- Bundles k3s and trustable helper scripts for offline installation.
+ Bundles k3s and trustant helper scripts for offline installation.
 EOF
 
 
@@ -227,9 +227,9 @@ sudo tee "${PKGROOT}/DEBIAN/preinst" >/dev/null <<'EOF'
 #!/bin/bash
 set -e
 
-# A previous trustable package is already installed (this is an upgrade or
+# A previous trustant package is already installed (this is an upgrade or
 # reinstall: $1 is "upgrade", or "install" with a 2nd arg = the old version).
-# We do NOT support installing over an existing trustable. Tell the user to
+# We do NOT support installing over an existing trustant. Tell the user to
 # remove it first.
 if [ -n "$2" ] || [ "$1" = "upgrade" ]; then
     cat >&2 <<'MSG'
@@ -297,15 +297,15 @@ useradd --uid 767 --gid 767 --no-create-home --home-dir /var/lib/ops --shell /bi
 # re-asserts it in case the uid/gid had to be allocated differently.
 chown -R ops:ops /var/lib/ops 2>/dev/null || true
 
-groupadd --gid 769 trustable 2>/dev/null || true
-useradd --uid 769 --gid 769 --create-home --home-dir /home/trustable --shell /bin/bash trustable 2>/dev/null || true
-install -d -o trustable -g trustable -m 0755 /home/trustable/workspace
-chown trustable:trustable /home/trustable/workspace
+groupadd --gid 769 trustant 2>/dev/null || true
+useradd --uid 769 --gid 769 --create-home --home-dir /home/trustant --shell /bin/bash trustant 2>/dev/null || true
+install -d -o trustant -g trustant -m 0755 /home/trustant/workspace
+chown trustant:trustant /home/trustant/workspace
 
-cat >/etc/sudoers.d/trustable <<'SUDOERS'
-trustable ALL=(ALL) NOPASSWD:ALL
+cat >/etc/sudoers.d/trustant <<'SUDOERS'
+trustant ALL=(ALL) NOPASSWD:ALL
 SUDOERS
-chmod 0440 /etc/sudoers.d/trustable
+chmod 0440 /etc/sudoers.d/trustant
 
 IFACE="$(ip -4 route show default | awk '{print $5; exit}')"
 if [ -z "$IFACE" ]; then
@@ -329,7 +329,7 @@ Trustable is accessible only locally through the miniops.me domain.
 
 If you are running Trustable on your local machine, open your browser and navigate to:
 
-http://trustable.miniops.me
+http://trustant.miniops.me
 
 If Trustable is running on a remote server, create an SSH tunnel:
 
@@ -337,7 +337,7 @@ ssh -L <port>:127.0.0.1:80 <your-server>
 
 Then open your browser and navigate to:
 
-http://trustable.miniops.me:<port>
+http://trustant.miniops.me:<port>
 **************************************************************************************
 MSG
 
@@ -361,7 +361,7 @@ sudo tee "${PKGROOT}/DEBIAN/postrm" >/dev/null <<'EOF'
 #!/bin/bash
 set -e
 if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
-    rm -f /etc/sudoers.d/trustable
+    rm -f /etc/sudoers.d/trustant
     rm -f /etc/systemd/system/k3s.service.d/blockports.conf
     rmdir /etc/systemd/system/k3s.service.d 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
@@ -374,11 +374,11 @@ if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
     fi
     rm -rf /var/lib/ops
 
-    if id trustable >/dev/null 2>&1; then
-        userdel trustable 2>/dev/null || true
+    if id trustant >/dev/null 2>&1; then
+        userdel trustant 2>/dev/null || true
     fi
-    if getent group trustable >/dev/null 2>&1; then
-        groupdel trustable 2>/dev/null || true
+    if getent group trustant >/dev/null 2>&1; then
+        groupdel trustant 2>/dev/null || true
     fi
 
     # Full cleanup of the k3s state tree. dpkg leaves non-empty dirs (and any
@@ -388,11 +388,11 @@ fi
 
 if [ "$1" = "purge" ]; then
     # purge also wipes the user's data directory.
-    rm -rf /home/trustable
+    rm -rf /home/trustant
 else
     cat <<'MSG'
-Your user data is stored under /home/trustable and is not removed automatically.
-To delete it, run: apt-get purge trustable   (or remove /home/trustable manually)
+Your user data is stored under /home/trustant and is not removed automatically.
+To delete it, run: apt-get purge trustant   (or remove /home/trustant manually)
 MSG
 fi
 exit 0

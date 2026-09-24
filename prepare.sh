@@ -27,18 +27,15 @@ ops config apihost miniops.me --protocol=http
 
 ops setup kubernetes create
 
-echo "stopped half prepare to check streamer deploy and wait"
-exit
-
 ops setup openserverless streamer deploy
 ops setup openserverless system-api deploy
 ops setup openserverless tika deploy
 
 echo "=== test ==="
 
-sudo k3s kubectl -n nuvolaris get ingress
-sudo k3s kubectl -n nuvolaris get sts
-sudo k3s kubectl -n nuvolaris get po
+sudo k3s kubectl -n openserveress get ingress
+sudo k3s kubectl -n openserverless get sts
+sudo k3s kubectl -n openserverless get po
 
 echo "=== trim down openserverless ==="
 
