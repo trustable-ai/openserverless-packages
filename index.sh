@@ -7,7 +7,7 @@ cd "$(dirname $0)"
 echo "=== INDEX ==="
 
 missing=()
-for v in S3_ENDPOINT S3_ZONE S3_KEY S3_SECRET; do
+for v in S3_ENDPOINT S3_REGION S3_KEY S3_SECRET; do
     if [ -z "${!v:-}" ]; then missing+=("$v"); fi
 done
 if [ "${#missing[@]}" -ne 0 ]; then
@@ -20,7 +20,7 @@ PUBLIC_URL="https://openserverless.nuvolaris.download"
 
 export AWS_ACCESS_KEY_ID="${S3_KEY}"
 export AWS_SECRET_ACCESS_KEY="${S3_SECRET}"
-export AWS_DEFAULT_REGION="${S3_ZONE}"
+export AWS_DEFAULT_REGION="${S3_REGION}"
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "${WORKDIR}"' EXIT
